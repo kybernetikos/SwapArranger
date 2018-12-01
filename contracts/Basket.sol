@@ -11,24 +11,22 @@ contract Basket {
     address payable _commitBeneficiary;
     address payable _rollbackBeneficiary;
 
-    constructor(uint256 etherAmountWei, address[] memory tokens, uint256[] memory amounts, address coordinator, address payable rollbackBeneficiary, address payable  commitBeneficiary) public {
+    constructor(uint256 etherAmountWei, address[] memory tokens, uint256[] memory amounts, address payable rollbackBeneficiary, address payable  commitBeneficiary) public {
         require(tokens.length > 0);
         require(tokens.length == amounts.length);
+        require(rollbackBeneficiary != address(0));
+        require(commitBeneficiary != address(0));
 
         _tokens = tokens;
         _amounts = amounts;
         _etherAmountWei = etherAmountWei;
 
-        _coordinator = coordinator;
+        _coordinator = msg.sender;
         _rollbackBeneficiary = rollbackBeneficiary;
         _commitBeneficiary = commitBeneficiary;
     }
 
-    function getCoordinator() public view returns(address) {
-        return _coordinator;
-    }
-
-    function check() public view returns(bool) {
+    function isReadyToCommit() public view returns(bool) {
         if (address(this).balance != _etherAmountWei) {
             return false;
         }
@@ -47,7 +45,7 @@ contract Basket {
 
     function commit() public {
         require(msg.sender == _coordinator);
-        require(check());
+        require(isReadyToCommit());
 
         closeOut(_commitBeneficiary);
     }
@@ -56,21 +54,6 @@ contract Basket {
         require(msg.sender == _coordinator);
 
         closeOut(_rollbackBeneficiary);
-    }
-
-    function getRollbackBeneficiary() public view returns(address) {
-        return _rollbackBeneficiary;
-    }
-
-    function getCommitBeneficiary() public view returns(address) {
-        return _commitBeneficiary;
-    }
-
-    function getEtherAmount() public view returns(uint) {
-        return address(this).balance;
-    }
-    function getEtherAmountExpected() public view returns(uint) {
-        return _etherAmountWei;
     }
 
     function closeOut(address payable recipient) internal {
@@ -86,5 +69,37 @@ contract Basket {
 
     function () external payable {
         require(address(this).balance <= _etherAmountWei);
+    }
+
+    function getRollbackBeneficiary() public view returns(address) {
+        return _rollbackBeneficiary;
+    }
+
+    function getCommitBeneficiary() public view returns(address) {
+        return _commitBeneficiary;
+    }
+
+    function getEtherAmount() public view returns(uint) {
+        return address(this).balance;
+    }
+
+    function getEtherAmountRequired() public view returns(uint) {
+        return _etherAmountWei;
+    }
+
+    function getCoordinator() public view returns(address) {
+        return _coordinator;
+    }
+
+    function getRequiredTokensNumber() public view returns(uint) {
+        return _tokens.length;
+    }
+
+    function getRequiredToken(uint n) public view returns(address) {
+        return _tokens[n];
+    }
+
+    function getRequiredAmount(uint n) public view returns(uint) {
+        return _amounts[n];
     }
 }

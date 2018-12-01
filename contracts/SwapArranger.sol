@@ -44,7 +44,7 @@ contract SwapArranger {
     }
 
     function makeBasket(BasketContents memory contents, address payable source, address payable destination) internal returns(Basket) {
-        return new Basket(contents.eth, contents.tokens, contents.amounts, address(this), source, destination);
+        return new Basket(contents.eth, contents.tokens, contents.amounts, source, destination);
     }
 
     function commit(uint id) public {
@@ -89,11 +89,11 @@ contract SwapArranger {
     }
 
     function isLeftComplete(uint id) public view returns(bool) {
-        return _currentSwaps[id].left.check();
+        return _currentSwaps[id].left.isReadyToCommit();
     }
 
     function isRightComplete(uint id) public view returns(bool) {
-        return _currentSwaps[id].right.check();
+        return _currentSwaps[id].right.isReadyToCommit();
     }
 
     function isReadyToCommit(uint id) public view returns(bool) {
