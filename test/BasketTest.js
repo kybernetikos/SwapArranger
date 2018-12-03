@@ -30,7 +30,7 @@ contract('Basket', async([alice, bob, carol, dave, eve, frank, grace, harry, ire
         assert.isFalse(await basket.isReadyToCommit());
         try {
             await basket.commit();
-            fail("Commit should fail.");
+            assert.fail("Commit should fail.");
         } catch (e) {
             assert.include(e.message, "revert");
         }
@@ -46,7 +46,7 @@ contract('Basket', async([alice, bob, carol, dave, eve, frank, grace, harry, ire
         assert.isFalse(await basket.isReadyToCommit());
         try {
             await basket.commit();
-            fail("Commit should fail.");
+            assert.fail("Commit should fail.");
         } catch (e) {
             assert.include(e.message, "revert");
         }
@@ -66,8 +66,11 @@ contract('Basket', async([alice, bob, carol, dave, eve, frank, grace, harry, ire
 
         assert.isTrue(await basket.isReadyToCommit());
 
+        // simulate to get return value.
+        const clean = await basket.commit.call();
         await basket.commit();
 
+        assert.isTrue(clean);
         assert.sameOrderedMembers(await balances(basket), [0, 0, 100, 0, 0, 20, 0, 0, 0]);
         assert.equal(await web3.eth.getBalance(carol), carolEth.addn(30).toString());
     });
@@ -88,9 +91,11 @@ contract('Basket', async([alice, bob, carol, dave, eve, frank, grace, harry, ire
         // it should still not be commitable.
         assert.isFalse(await basket.isReadyToCommit());
 
-        // but we can roll back.
+        // but we can roll back. (After simulating to get return value)
+        const clean = await basket.rollback.call();
         await basket.rollback();
 
+        assert.isTrue(clean);
         assert.sameOrderedMembers(await balances(basket), [0, 100, 0, 0, 19, 0, 0, 0, 0]);
         assert.equal(await web3.eth.getBalance(bob), bobEth.addn(30).toString());
     });
@@ -105,8 +110,10 @@ contract('Basket', async([alice, bob, carol, dave, eve, frank, grace, harry, ire
         ]);
 
         await flakyToken.setFlake(true);
+        const clean = await basket.rollback.call();
         await basket.rollback();
 
+        assert.isFalse(clean);
         assert.sameOrderedMembers(await balances(basket), [0, 100, 0, 0, 30, 0, 20, 0, 0]);
     });
 
@@ -120,8 +127,10 @@ contract('Basket', async([alice, bob, carol, dave, eve, frank, grace, harry, ire
         ]);
 
         await flakyToken.setReject(true);
+        let clean = await basket.rollback.call();
         await basket.rollback();
 
+        assert.isFalse(clean);
         assert.sameOrderedMembers(await balances(basket), [0, 100, 0, 0, 30, 0, 20, 0, 0]);
 
         // If the flaky coin fixes later...
@@ -130,15 +139,16 @@ contract('Basket', async([alice, bob, carol, dave, eve, frank, grace, harry, ire
         // We can no longer commit - we've already locked in that this basket is being rolled back.
         try {
             await basket.commit();
-            fail("Commit should fail.");
+            assert.fail();
         } catch (e) {
             assert.include(e.message, "revert");
         }
 
         // but we can rollback again to retrieve the remaining flaky tokens.
+        clean = await basket.rollback.call();
         await basket.rollback();
 
+        assert.isTrue(clean);
         assert.sameOrderedMembers(await balances(basket), [0, 100, 0, 0, 30, 0, 0, 20, 0]);
-
     });
 });
